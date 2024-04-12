@@ -1,11 +1,12 @@
 /* eslint-disable @typescript-eslint/indent */
 import express from 'express';
-import TimeRecord from '../models/time-record.model';
+import TimeRecord, { Status } from '../models/time-record.model';
 import { UserDomain } from '../models/domain/user-domain.model';
 import { authMiddleware } from '../middlewares';
 import { calculateTotalHours } from '../utilities/calc';
 import { IUser } from '../models/user.model';
-import { getTimeRecordQuery } from '../utilities/query';
+import { getTimeRecordQuery, validateNewRecord } from '../utilities/query';
+import Jobsite from '../models/jobsite.model';
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ router.get('/', authMiddleware, async (req, res) => {
     const user: UserDomain = new UserDomain(req.user);
     const query = getTimeRecordQuery(req, user);
 
-    const timeRecords = await TimeRecord.find(query).populate('employee');
+    const timeRecords = await TimeRecord.find(query).sort({ date: -1, startTime: 1, 'jobsite.name': 1 }).populate('employee');
 
     return res.json(timeRecords);
   } catch (error) {
@@ -27,7 +28,7 @@ router.get('/', authMiddleware, async (req, res) => {
 // GET a specific time record by ID
 router.get('/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
-  
+
   try {
     const user: UserDomain = new UserDomain(req.user);
 
@@ -57,17 +58,28 @@ router.get('/:id', authMiddleware, async (req, res) => {
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const user: UserDomain = new UserDomain(req.user);
-    const { employee, startTime, endTime, jobsite, isApproved } = req.body;
+    const { employee, startTime, endTime, jobsite, status, date } = req.body;
+
+    const errorMessages = await validateNewRecord(req);
+    if (errorMessages.length > 0) {
+      return res.status(400).json({ message: errorMessages.map((e) => e) });
+    }
 
     if (user.getUserTimeRecordPermission(jobsite._id, employee)) {
       const recordTotalHours = calculateTotalHours(new Date(startTime), new Date(endTime));
 
+      const validatedJobsite = await Jobsite.findById(jobsite._id);
+      
+      let validatedStatus = Status[status as Status];
+      if (!Status[status as Status]) validatedStatus = Status.pending;
+
       const newTimeRecord = await TimeRecord.create({
         employee,
+        date,
         startTime,
         endTime,
-        jobsite,
-        isApproved,
+        jobsite: validatedJobsite,
+        status: validatedStatus,
         recordTotalHours,
       });
 
@@ -84,10 +96,13 @@ router.post('/', authMiddleware, async (req, res) => {
 // PATCH/update an existing time record by ID
 router.patch('/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
-  const { startTime, endTime, jobsite, isApproved } = req.body;
+  const { startTime, endTime, jobsite, status, date } = req.body;
 
   try {
     const user: UserDomain = new UserDomain(req.user);
+    
+    const validatedJobsite = await Jobsite.findById(jobsite._id);
+    if (!validatedJobsite) return res.status(400).json({ message: 'Invalid jobsite' });
 
     await TimeRecord.findById(id)
       .populate<{
@@ -99,18 +114,21 @@ router.patch('/:id', authMiddleware, async (req, res) => {
         }
 
         if (user.getUserTimeRecordPermission(timeRecord.jobsite._id, timeRecord.employee._id)) {
+
           if (startTime && endTime) {
+            timeRecord.date = date;
             timeRecord.startTime = startTime;
             timeRecord.endTime = endTime;
-            req.body.recordTotalHours = calculateTotalHours(new Date(startTime), new Date(endTime));
+            timeRecord.recordTotalHours = calculateTotalHours(new Date(startTime), new Date(endTime));
           }
 
           if (jobsite) {
-            timeRecord.jobsite = jobsite;
+            timeRecord.jobsite = validatedJobsite;
           }
 
-          if (isApproved) {
-            timeRecord.isApproved = isApproved;
+          if (status) { 
+            if (!Status[status as Status]) return res.status(400).json({ message: 'Invalid status' });
+            timeRecord.status = Status[status as Status];
           }
 
           timeRecord.save();
@@ -138,7 +156,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     }
 
     if (user.getUserTimeRecordPermission(timeRecord.jobsite._id, timeRecord.employee._id)) {
-      timeRecord.deleteOne();
+      await TimeRecord.findByIdAndDelete(id);
       return res.json({ message: 'Time record deleted successfully' });
     }
 

@@ -1,34 +1,49 @@
 import { UserDomain } from '../models/domain/user-domain.model';
+import Jobsite from '../models/jobsite.model';
+import User from '../models/user.model';
 
 export const getTimeRecordQuery = (req: any, user: UserDomain): any => {
-  const { employees, jobsites, startDate, endDate, isApproved } = req.query;
-  if (!req.query) return {};
+  const { employees, jobsites, startDate, endDate, status, search } = req.query;
 
-  const baseQuery: any = {};
+  const baseQuery: any = { };
   let query: any[] = [];
 
   if (startDate) {
-    baseQuery.startTime = { $gte: new Date(startDate) };
+    baseQuery.date = { $gte: new Date(startDate) };
   }
 
   if (endDate) {
-    baseQuery.endTime = { $lte: new Date(endDate) };
+    baseQuery.date = { $lte: new Date(endDate) };
   }
 
   if (employees) {
-    query.push({ employee: { $in: employees.split(',') } });
+    query.push({ employee: { $in: employees.split(',').map((j: string) => j.trim()) } });
   }
 
   if (jobsites) {
-    query.push({ 'jobsite._id': { $in: jobsites.split(',') } });
+    query.push({ 'jobsite._id': { $in: jobsites.split(',').map((j: string) => j.trim()) } });
   }
 
-  if (isApproved) {
-    baseQuery.isApproved = isApproved;
+  if (status) {
+    baseQuery.status = status;
+  }
+
+  if (search) {
+    query.push({
+      $or: [
+        { 'employee.firstName': { $regex: new RegExp(search, 'i') } },
+        { 'employee.lastName': { $regex: new RegExp(search, 'i') } },
+        { 'jobsite.name': { $regex: new RegExp(search, 'i') } },
+        { 'jobsite.city': { $regex: new RegExp(search, 'i') } },
+      ],
+    });
   }
 
   if (user.getIsAdmin()) {
-    return { $and: query, ...baseQuery };
+    if (query.length > 0) {
+      return { $and: query, ...baseQuery };
+    }
+    return { ...baseQuery };
   }
 
   // Supervisor query
@@ -41,7 +56,28 @@ export const getTimeRecordQuery = (req: any, user: UserDomain): any => {
     query.push({ employee: user._id });
   }
 
-  // Apply $or condition
-  const finalQuery = { $and: query, ...baseQuery };
-  return finalQuery;
+  if (query.length > 0) {
+    return { $and: query, ...baseQuery };
+  }
+  return { ...baseQuery };
+};
+
+export const validateNewRecord = async (req: any): Promise<string[]> => {
+  const { employee, startTime, endTime, jobsite, date } = req.body;
+
+  const errorMessages: string[] = [];
+
+  const validatedJobsite = await Jobsite.findById(jobsite._id);
+  if (!validatedJobsite) errorMessages.push('Invalid jobsite');
+
+  const validatedUser = await User.findById(employee);
+  if (!validatedUser) errorMessages.push('Invalid employee');
+
+  if (!startTime) errorMessages.push('Invalid start time');
+
+  if (!endTime) errorMessages.push('Invalid end time');
+
+  if (!date) errorMessages.push('Invalid date');
+
+  return errorMessages;
 };

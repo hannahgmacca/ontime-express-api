@@ -54,17 +54,23 @@ router.get<{ id: Types.ObjectId }>('/:id', async (req, res) => {
 // PATCH/update an existing jobsite by ID
 router.patch('/:id', async (req, res) => {
   const { id } = req.params;
+  const { email, firstName, lastName, jobsites, roles } = req.body;
 
   try {
-    const updatedJobsite = await User.findByIdAndUpdate(id, req.body, {
-      new: true,
-    });
+    const updatedUser = await User.findById(id);    
 
-    if (!updatedJobsite) {
-      return res.status(404).json({ message: 'Jobsite not found' });
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    res.json(updatedJobsite);
+    updatedUser.email = email;
+    updatedUser.firstName = firstName;
+    updatedUser.lastName = lastName;
+    updatedUser.jobsites = jobsites;
+    updatedUser.roles = roles;
+
+    updatedUser.save();
+    res.json(updatedUser);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
