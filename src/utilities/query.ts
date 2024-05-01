@@ -2,18 +2,20 @@ import { UserDomain } from '../models/domain/user-domain.model';
 import Jobsite from '../models/jobsite.model';
 import User from '../models/user.model';
 
-export const getTimeRecordQuery = (req: any, user: UserDomain): any => {
+export const getTimeRecordQuery = async (req: any, user: UserDomain) => {
   const { employees, jobsites, startDate, endDate, status, search } = req.query;
 
-  const baseQuery: any = { };
+  const baseQuery: any = {};
   let query: any[] = [];
 
   if (startDate) {
-    baseQuery.date = { $gte: new Date(startDate) };
+    query.push({ date: { $gte: new Date(startDate) } });
   }
 
   if (endDate) {
-    baseQuery.date = { $lte: new Date(endDate) };
+    const searchDate = new Date(endDate);
+    searchDate.setHours(24, 59, 59);
+    query.push({ date: { $lte: new Date(searchDate) } });
   }
 
   if (employees) {
@@ -29,10 +31,17 @@ export const getTimeRecordQuery = (req: any, user: UserDomain): any => {
   }
 
   if (search) {
+    // get matching user IDs
+    const matchingUsers = await User.find({
+      $or: [
+        { 'firstName': { $regex: new RegExp(search, 'i') } },
+        { 'lastName': { $regex: new RegExp(search, 'i') } },
+      ],
+    }).then(res => res.map(u => u.id));
+
     query.push({
       $or: [
-        { 'employee.firstName': { $regex: new RegExp(search, 'i') } },
-        { 'employee.lastName': { $regex: new RegExp(search, 'i') } },
+        { 'employee': { $in: matchingUsers } },
         { 'jobsite.name': { $regex: new RegExp(search, 'i') } },
         { 'jobsite.city': { $regex: new RegExp(search, 'i') } },
       ],

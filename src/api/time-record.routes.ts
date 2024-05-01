@@ -14,7 +14,7 @@ const router = express.Router();
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const user: UserDomain = new UserDomain(req.user);
-    const query = getTimeRecordQuery(req, user);
+    const query = await getTimeRecordQuery(req, user);
 
     const timeRecords = await TimeRecord.find(query).sort({ date: -1, startTime: 1, 'jobsite.name': 1 }).populate('employee');
 
@@ -148,7 +148,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
 
   try {
-    const timeRecord = await TimeRecord.findById(id);
+    const timeRecord = await TimeRecord.findById(id).populate('employee');
     const user: UserDomain = new UserDomain(req.user);
 
     if (!timeRecord) {
