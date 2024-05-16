@@ -1,12 +1,12 @@
 import express from 'express';
-import Jobsite from '../models/jobsite.model';
+import Notification from '../models/notification.model';
 
 const router = express.Router();
 
 // GET all jobsites
 router.get('/', async (req, res) => {
   try {
-    const jobsites = await Jobsite.find();
+    const jobsites = await Notification.find();
 
     res.json(jobsites);
   } catch (error) {
@@ -15,29 +15,29 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET a specific jobsite by ID
+// GET a specific notification by ID
 router.get('/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const jobsite = await Jobsite.findById(id);
+    const notification = await Notification.findById(id);
 
-    if (!jobsite) {
-      return res.status(404).json({ message: 'Jobsite not found' });
+    if (!notification) {
+      return res.status(404).json({ message: 'Notification not found' });
     }
 
-    res.json(jobsite);
+    res.json(notification);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// POST a new jobsite
+// POST a new notification
 router.post('/', async (req, res) => {
   try {
     const { name, city } = req.body;
-    const newJobsite = await Jobsite.create({ name, city });
+    const newJobsite = await Notification.create({ name, city });
     res.status(201).json(newJobsite);
   } catch (error) {
     console.error(error);
@@ -45,17 +45,17 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PATCH/update an existing jobsite by ID
+// PATCH/update an existing notification by ID
 router.patch('/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const updatedJobsite = await Jobsite.findByIdAndUpdate(id, req.body, {
+    const updatedJobsite = await Notification.findByIdAndUpdate(id, req.body, {
       new: true,
     });
 
     if (!updatedJobsite) {
-      return res.status(404).json({ message: 'Jobsite not found' });
+      return res.status(404).json({ message: 'Notification not found' });
     }
 
     res.json(updatedJobsite);
@@ -65,22 +65,22 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// DELETE a jobsite by ID
+// DELETE a notification by ID
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    const deletedJobsite = await Jobsite.findByIdAndDelete(id);
+    const deletedJobsite = await Notification.findByIdAndDelete(id);
 
     if (!deletedJobsite) {
-      return res.status(404).json({ message: 'Jobsite not found' });
+      return res.status(404).json({ message: 'Notification not found' });
     }
 
-    res.json({ message: 'Jobsite deleted successfully' });
+    res.json({ message: 'Notification deleted successfully' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-export default router;ß
+export default router;

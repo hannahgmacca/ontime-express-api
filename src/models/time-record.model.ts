@@ -16,7 +16,7 @@ export interface ITimeRecord {
 export enum Status {
   approved = 'approved',
   pending = 'pending',
-  cancelled = 'cancelled',
+  denied = 'denied',
 }
 
 export type TimeRecordModel = Model<ITimeRecord>;

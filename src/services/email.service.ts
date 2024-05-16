@@ -31,64 +31,109 @@ export const sendEmail = async (toEmail: string, subject: string, htmlBody?: str
     });
 };
 
-export const generatePasswordResetHtml = (token: string) => {
+export const generatePasswordResetHtml = (code: string) => {
   return `<!DOCTYPE html>
   <html lang="en">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OnTime Password Reset</title>
+    <title>Email Body</title>
     <style>
       body {
         font-family: Arial, sans-serif;
+        line-height: 1.6;
         margin: 0;
         padding: 0;
-        background-color: #f7f7f7;
+        background-color: #f4f4f4;
       }
       .container {
         max-width: 600px;
-        margin: 50px auto;
+        margin: 20px auto;
         padding: 20px;
         background-color: #fff;
-        border-radius: 8px;
+        border-radius: 5px;
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
       }
       h1 {
         color: #333;
-        text-align: center;
       }
       p {
         color: #555;
-        font-size: 18px;
-        text-align: center;
       }
-      a.button {
-        display: block;
-        width: 200px;
-        margin: 20px auto;
-        padding: 10px 20px;
-        text-align: center;
-        color: #fff;
-        background-color: #007bff;
-        border: none;
-        border-radius: 4px;
-        text-decoration: none;
-        transition: background-color 0.3s ease;
-      }
-      a.button:hover {
-        background-color: #0056b3;
+      .code {
+        font-size: 24px;
+        font-weight: bold;
+        color: #007bff;
+        margin-top: 10px;
       }
     </style>
   </head>
   <body>
-  
-  <div class="container">
-    <h1>OnTime Password Reset</h1>
-    <p>Please click the following link to reset your password:</p>
-    <a class="button" href="www.google.com/token=${token}">Reset Password</a>
-  </div>
-  
+    <div class="container">
+      <h1>Password Reset Code</h1>
+      <p>Dear User,</p>
+      <p>Your password reset code is:</p>
+      <p class="code">${code}</p> 
+      <p>Please use this code to reset your password.</p>
+      <p>If you did not request a password reset, please ignore this email.</p>
+      <p>Thank you!</p>
+    </div>
   </body>
   </html>
+  
   `;
 };
+
+export const generateWelcomeEmailHtml = (password: string, email: string) => {
+  return `<!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Body</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+      }
+      .container {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+      }
+      p {
+        color: #555;
+      }
+      .code {
+        font-size: 24px;
+        font-weight: bold;
+        color: #007bff;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Welcome to OnTime</h1>
+      <p>Dear User</p>
+      <p>Your account has been created in OnTime.</p>
+      <p>Email: ${email}</p> 
+      <p>Password: ${password}</p> 
+      <p>Please use this password to log in, you can reset your password in user settings.</p>
+      <p>Thank you!</p>
+    </div>
+  </body>
+  </html>
+  
+  `;
+};
+

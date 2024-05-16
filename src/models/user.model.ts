@@ -12,7 +12,7 @@ export interface IUser {
   company: ICompany;
   roles: IRole[];
   jobsites: Types.ObjectId[];
-  resetToken: string | null;
+  resetCode: string | null;
 }
 
 export type UserModel = Model<IUser>;
@@ -25,7 +25,7 @@ export const userSchema: Schema = new Schema<IUser, UserModel>({
   company: companySchema,
   roles: [roleSchema],
   jobsites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Jobsite' }],
-  resetToken: String,
+  resetCode: String,
 });
 
 const User: UserModel = mongoose.model<IUser, UserModel>('User', userSchema);

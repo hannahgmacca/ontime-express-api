@@ -12,7 +12,7 @@ export class UserDomain implements IUser {
   company: ICompany;
   roles: IRole[];
   jobsites: Types.ObjectId[];
-  resetToken: string | null;
+  resetCode: string | null;
 
   constructor(user: IUser) {
     this._id = user._id;
@@ -23,7 +23,7 @@ export class UserDomain implements IUser {
     this.company = user.company;
     this.roles = user.roles;
     this.jobsites = user.jobsites;
-    this.resetToken = user.resetToken;
+    this.resetCode = user.resetCode;
   }
 
   getIsSupervisor(): boolean {

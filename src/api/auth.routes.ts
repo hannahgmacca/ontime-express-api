@@ -5,49 +5,11 @@ import jwt from 'jsonwebtoken';
 import { Request, Response } from 'express';
 import User, { IUser } from '../models/user.model';
 import { generatePasswordResetHtml, sendEmail } from '../services/email.service';
+import { authMiddleware } from '../middlewares';
+import { UserDomain } from '../models/domain/user-domain.model';
+import { generateRandomDigits } from '../utilities/calc';
 
 const router = express.Router();
-
-// SIGNUP
-router.post('/signup', async (req: Request, res: Response) => {
-  const { email, password, roles, jobsites, firstName, lastName, company } = req.body;
-
-  try {
-    const secretKey: string = process.env.SECRET_KEY || '';
-
-    // Check if the user already exists
-    const existingUser = await User.findOne({ email });
-
-    if (existingUser) {
-      return res.status(400).send({ message: 'User already exists' });
-    }
-
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create new user
-    const newUser = new User({
-      email,
-      password: hashedPassword,
-      roles,
-      jobsites,
-      firstName,
-      lastName,
-      company,
-    });
-    await newUser.save();
-
-    // Generate token
-    const token = jwt.sign({ userId: newUser._id }, secretKey, {
-      expiresIn: '7d',
-    });
-
-    res.status(201).send({ token });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send({ message: 'Internal server error' });
-  }
-});
 
 // SIGNIN
 router.post('/signin', async (req: Request, res: Response) => {
@@ -79,7 +41,7 @@ router.post('/signin', async (req: Request, res: Response) => {
       company: user.company,
       roles: user.roles,
       jobsites: user.jobsites,
-      resetToken: '',
+      resetCode: '',
     };
 
     // Generate token
@@ -110,7 +72,6 @@ router.post('/ping', async (req: Request, res: Response) => {
 // Forgot Password
 router.post('/forgotpassword', async (req: Request, res: Response) => {
   const { email } = req.body;
-  const secretKey: string = process.env.SECRET_KEY || '';
 
   try {
     const user = await User.findOne({ email });
@@ -128,18 +89,16 @@ router.post('/forgotpassword', async (req: Request, res: Response) => {
       company: user.company,
       roles: user.roles,
       jobsites: user.jobsites,
-      resetToken: '',
+      resetCode: '',
     };
 
-    // Generate token
-    const token = jwt.sign(userDomain, secretKey, {
-      expiresIn: '1d',
-    });
+    // Generate code
+    const code = generateRandomDigits(6);
 
-    // Send email with token to the user (Replace this with your email sending logic)
-    sendEmail(userDomain.email, 'Password Reset', generatePasswordResetHtml(token)); 
+    // Send email with token to the user 
+    sendEmail(userDomain.email, 'Password Reset', generatePasswordResetHtml(code)); 
 
-    user.resetToken = token;
+    user.resetCode = code;
     user.save();
 
     res.status(200).json({ message: 'Password reset email sent successfully' });
@@ -151,8 +110,7 @@ router.post('/forgotpassword', async (req: Request, res: Response) => {
 
 // Reset Password
 router.post('/resetpassword', async (req: Request, res: Response) => {
-  const { token, password, confirmationPassword } = req.body;
-  const secretKey: string = process.env.SECRET_KEY || '';
+  const { email, code, password, confirmationPassword  } = req.body;
 
   try {
     // Validate passwords
@@ -160,13 +118,15 @@ router.post('/resetpassword', async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
 
-    const decodedToken = jwt.verify(token, secretKey) as IUser;
+    // Retrieve user
+    const user = await User.findOne({ email: email });
 
-    // Check token validity and retrieve user
-    const user = await User.findOne({ _id: decodedToken._id });
+    if (!user) {
+      return res.status(404).json({ message: 'Email is invaild' });
+    }
 
-    if (!user || user.resetToken != token) {
-      return res.status(404).json({ message: 'Invalid or expired token' });
+    if (user.resetCode != code) {
+      return res.status(400).json({ message: 'Code is invaild' });
     }
 
     // Hash the new password
@@ -176,7 +136,7 @@ router.post('/resetpassword', async (req: Request, res: Response) => {
     user.password = hashedPassword;
 
     // // Clear/reset the token or mark it as used
-    user.resetToken = null; // Reset the token after successful password reset
+    user.resetCode = null; // Reset the token after successful password reset
 
     await user.save();
 
@@ -188,20 +148,23 @@ router.post('/resetpassword', async (req: Request, res: Response) => {
 });
 
 // Admin Reset Password
-router.post('/updatepassword', async (req: Request, res: Response) => {
-  const { token, password, confirmationPassword } = req.body;
-  const secretKey: string = process.env.SECRET_KEY || '';
+router.post('/updatepassword',  authMiddleware, async (req: Request, res: Response) => {
+  const { email, password, confirmationPassword } = req.body;
 
   try {
+    const userDomain: UserDomain = new UserDomain(req.user);
+
     // Validate passwords
     if (password !== confirmationPassword) {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
 
-    const decodedToken = jwt.verify(token, secretKey) as IUser;
+    if (!userDomain.getIsAdmin()) {
+      return res.status(401).json({ message: 'Unauthorised' });
+    }
 
-    // Check token validity and retrieve user
-    const user = await User.findOne({ _id: decodedToken._id });
+    // Get user to update
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(404).json({ message: 'Invalid or expired token' });
@@ -212,9 +175,6 @@ router.post('/updatepassword', async (req: Request, res: Response) => {
 
     // Update user's password
     user.password = hashedPassword;
-
-    // // Clear/reset the token or mark it as used
-    // user.token = null; // Reset the token after successful password reset
 
     await user.save();
 
