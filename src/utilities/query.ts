@@ -3,7 +3,7 @@ import Jobsite from '../models/jobsite.model';
 import User from '../models/user.model';
 
 export const getTimeRecordQuery = async (req: any, user: UserDomain) => {
-  const { employees, jobsites, startDate, endDate, status, search } = req.query;
+  const { employees, jobsites, startDate, endDate, status, search, recordType } = req.query;
 
   const baseQuery: any = {};
   let query: any[] = [];
@@ -28,6 +28,10 @@ export const getTimeRecordQuery = async (req: any, user: UserDomain) => {
 
   if (status) {
     baseQuery.status = status;
+  }
+
+  if (recordType) {
+    baseQuery.recordType = recordType;
   }
 
   if (search) {

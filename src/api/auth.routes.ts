@@ -96,12 +96,15 @@ router.post('/forgotpassword', async (req: Request, res: Response) => {
     const code = generateRandomDigits(6);
 
     // Send email with token to the user 
-    sendEmail(userDomain.email, 'Password Reset', generatePasswordResetHtml(code)); 
+    const response = await sendEmail(userDomain.email, 'Password Reset', generatePasswordResetHtml(code)); 
 
-    user.resetCode = code;
-    user.save();
+    if (response.status == 200) {
+      user.resetCode = code;
+      user.save();
+      return res.status(200).json({ message: 'Password reset email sent successfully' }); 
+    }
 
-    res.status(200).json({ message: 'Password reset email sent successfully' });
+      return res.status(response.status).json({ message: 'Password reset email failed.', error: response.message }); 
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });

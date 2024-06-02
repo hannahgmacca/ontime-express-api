@@ -1,18 +1,17 @@
 /* eslint-disable import/no-extraneous-dependencies */
 const nodemailer = require('nodemailer');
 
-export const sendEmail = async (toEmail: string, subject: string, htmlBody?: string) => {
+export const sendEmail = async (toEmail: string, subject: string, htmlBody?: string, attachments?: any[]): Promise<{status: number; message?: string }> => {
   const email: string = process.env.RECOVERY_EMAIL || '';
   const password: string = process.env.RECOVERY_PASSWORD || '';
+  let response = {status: 400, message: "Nothing happened"};
 
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    service: 'Gmail',
     auth: {
       user: email,
       pass: password,
     },
-    port: 587,
-    secure: false,
   });
 
   await transporter
@@ -21,14 +20,17 @@ export const sendEmail = async (toEmail: string, subject: string, htmlBody?: str
       to: toEmail,
       subject: subject,
       html: htmlBody,
+      attachments: attachments,
     })
     .then((r: any) => {
-      console.log(r);
-      return r;
+      response.status = 200;;
     })
-    .catch(() => {
-      throw new Error('There was an issue sending email');
+    .catch((e: any) => {
+      response.status = 400;
+      response.message = e.toString();
     });
+
+    return response;
 };
 
 export const generatePasswordResetHtml = (code: string) => {

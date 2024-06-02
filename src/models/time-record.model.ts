@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/indent */
 import mongoose, { Model, Schema, Types } from 'mongoose';
 import { IJobsite, jobsiteSchema } from './jobsite.model';
+import { IUser } from './user.model';
 
 export interface ITimeRecord {
   _id: Types.ObjectId;
@@ -9,14 +10,29 @@ export interface ITimeRecord {
   endTime: Date;
   jobsite: IJobsite;
   status: Status;
-  employee: Types.ObjectId;
+  employee: IUser;
   recordTotalHours: number;
+  recordType: RecordType;
+  notes: string;
+  breakHours: number;
 }
 
 export enum Status {
   approved = 'approved',
   pending = 'pending',
   denied = 'denied',
+}
+
+export interface Break {
+  startTime: Date;
+  endTime: Date;
+  totalBreakHours: number;
+}
+
+export enum RecordType {
+  hoursWorked = 'hoursWorked',
+  annualLeave = 'annualLeave',
+  sickLeave = 'sickLeave'
 }
 
 export type TimeRecordModel = Model<ITimeRecord>;
@@ -31,7 +47,14 @@ export const timeRecordSchema: Schema = new Schema<ITimeRecord, TimeRecordModel>
     enum: Status,
     default: Status.pending,
   },
+  recordType: {
+    type: String,
+    enum: RecordType,
+    default: RecordType.hoursWorked,
+  },
   employee: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  breakHours: Number,
+  notes: String,
   recordTotalHours: Number,
 });
 
