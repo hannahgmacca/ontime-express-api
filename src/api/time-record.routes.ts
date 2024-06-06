@@ -50,6 +50,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
       stringify(csvData, { header: true, columns }, async (err: any, output: any) => {
         const testEmail: string = process.env.TEST_EMAIL || '';
+        const environment: string = process.env.NODE_ENV || 'development';
 
         const result = { status: 400, message: 'Error generating CSV' };
 
@@ -59,7 +60,7 @@ router.get('/', authMiddleware, async (req, res) => {
         }
 
         const emailResponse = await sendEmail(
-          testEmail,
+          environment == 'production' ? user.email : testEmail,
           'OnTime App Date Export',
           'Attached is the CSV file containing your time records.',
           [
