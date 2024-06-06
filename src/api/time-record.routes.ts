@@ -10,6 +10,7 @@ import Jobsite from '../models/jobsite.model';
 import { stringify } from 'csv-stringify';
 import { sendEmail } from '../services/email.service';
 import { formatDateDdMmYyyy, getCurrentMonthStartDate, getCurrentWeekStartDate, getTimeIn24HourFormat, getTodaysDate } from '../utilities/date';
+import { formatCamelCase, formatDecimalToString } from '../utilities/string';
 
 const router = express.Router();
 
@@ -42,9 +43,9 @@ router.get('/', authMiddleware, async (req, res) => {
         EndTime: getTimeIn24HourFormat(record.endTime),
         JobsiteName: record.jobsite.name.toString(),
         EmployeeName: record.employee.firstName.toString() + ' ' + record.employee.lastName.toString(), 
-        TotalHours: record.recordTotalHours,
-        BreakHours: record.breakHours,
-        RecordType: record.recordType,
+        TotalHours: formatDecimalToString(record.recordTotalHours),
+        BreakHours: formatDecimalToString(record.breakHours),
+        RecordType: formatCamelCase(record.recordType),
         Notes: record.notes
       }));
 
