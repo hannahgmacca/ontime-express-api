@@ -7,7 +7,7 @@ import Role, { RoleModel } from './models/role.model';
 import Jobsite, { JobsiteModel } from './models/jobsite.model';
 import { ObjectId } from 'mongoose';
 import { JwtPayload } from './interfaces/JwtPayload';
-import { IUser } from './models/user.model';
+import User, { IUser } from './models/user.model';
 
 declare global {
   namespace Express {
@@ -38,7 +38,7 @@ export function errorHandler(
 }
 
 // Middleware for authorization
-export function authMiddleware(
+export async function authMiddleware(
   req: Request,
   res: Response,
   next: NextFunction,
@@ -56,6 +56,13 @@ export function authMiddleware(
   try {
     const decodedToken = jwt.verify(token, secretKey) as IUser;
     req.user = decodedToken;
+
+   const validatedUser = await User.findOne({_id: decodedToken._id});
+
+    if (!validatedUser || !validatedUser.isActive) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
     next();
   } catch (error) {
     console.error(error);

@@ -1,5 +1,4 @@
 import { Types } from 'mongoose';
-import { ICompany } from '../company.model';
 import { IRole } from '../role.model';
 import { IUser } from '../user.model';
 
@@ -9,10 +8,10 @@ export class UserDomain implements IUser {
   password: string;
   firstName: string;
   lastName: string;
-  company: ICompany;
   roles: IRole[];
   jobsites: Types.ObjectId[];
   resetCode: string | null;
+  isActive: boolean;
 
   constructor(user: IUser) {
     this._id = user._id;
@@ -20,10 +19,10 @@ export class UserDomain implements IUser {
     this.password = user.password;
     this.firstName = user.firstName;
     this.lastName = user.lastName;
-    this.company = user.company;
     this.roles = user.roles;
     this.jobsites = user.jobsites;
     this.resetCode = user.resetCode;
+    this.isActive = user.isActive;
   }
 
   getIsSupervisor(): boolean {

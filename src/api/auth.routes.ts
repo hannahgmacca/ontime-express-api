@@ -19,7 +19,7 @@ router.post('/signin', async (req: Request, res: Response) => {
     const secretKey: string = process.env.SECRET_KEY || '';
 
     // Check if the user exists
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email, isActive: true });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -29,7 +29,7 @@ router.post('/signin', async (req: Request, res: Response) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(403).json({ message: 'Invalid credentials' });
     }
 
     const userDomain: IUser = {
@@ -38,10 +38,10 @@ router.post('/signin', async (req: Request, res: Response) => {
       password: '',
       firstName: user.firstName,
       lastName: user.lastName,
-      company: user.company,
       roles: user.roles,
       jobsites: user.jobsites,
       resetCode: '',
+      isActive: user.isActive
     };
 
     // Generate token
@@ -74,7 +74,7 @@ router.post('/forgotpassword', async (req: Request, res: Response) => {
   const { email } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email, isActive: true });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -86,10 +86,10 @@ router.post('/forgotpassword', async (req: Request, res: Response) => {
       password: '',
       firstName: user.firstName,
       lastName: user.lastName,
-      company: user.company,
       roles: user.roles,
       jobsites: user.jobsites,
       resetCode: '',
+      isActive: user.isActive
     };
 
     // Generate code
@@ -122,7 +122,7 @@ router.post('/resetpassword', async (req: Request, res: Response) => {
     }
 
     // Retrieve user
-    const user = await User.findOne({ email: email });
+    const user = await User.findOne({ email: email, isActive: true });
 
     if (!user) {
       return res.status(404).json({ message: 'Email is invaild' });
@@ -138,9 +138,8 @@ router.post('/resetpassword', async (req: Request, res: Response) => {
     // Update user's password
     user.password = hashedPassword;
 
-    // // Clear/reset the token or mark it as used
-    user.resetCode = null; // Reset the token after successful password reset
-
+    //Clear/reset the token or mark it as used
+    user.resetCode = null; 
     await user.save();
 
     res.status(200).json({ message: 'Password reset successfully' });
@@ -152,7 +151,7 @@ router.post('/resetpassword', async (req: Request, res: Response) => {
 
 // Admin Reset Password
 router.post('/updatepassword',  authMiddleware, async (req: Request, res: Response) => {
-  const { email, password, confirmationPassword } = req.body;
+  const { userId, password, confirmationPassword } = req.body;
 
   try {
     const userDomain: UserDomain = new UserDomain(req.user);
@@ -163,14 +162,14 @@ router.post('/updatepassword',  authMiddleware, async (req: Request, res: Respon
     }
 
     if (!userDomain.getIsAdmin()) {
-      return res.status(401).json({ message: 'Unauthorised' });
+      return res.status(403).json({ message: 'Unauthorised' });
     }
 
     // Get user to update
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ _id: userId, isActive: true });
 
     if (!user) {
-      return res.status(404).json({ message: 'Invalid or expired token' });
+      return res.status(404).json({ message: 'User not found' });
     }
 
     // Hash the new password

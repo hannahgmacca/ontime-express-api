@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/lines-between-class-members */
 import mongoose, { Model, Schema, Types } from 'mongoose';
-import { ICompany, companySchema } from './company.model';
 import { IRole, roleSchema } from './role.model';
 
 export interface IUser {
@@ -9,10 +8,10 @@ export interface IUser {
   password: string;
   firstName: string;
   lastName: string;
-  company: ICompany;
   roles: IRole[];
   jobsites: Types.ObjectId[];
   resetCode: string | null;
+  isActive: boolean
 }
 
 export type UserModel = Model<IUser>;
@@ -22,10 +21,10 @@ export const userSchema: Schema = new Schema<IUser, UserModel>({
   password: String,
   firstName: String,
   lastName: String,
-  company: companySchema,
   roles: [roleSchema],
   jobsites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Jobsite' }],
   resetCode: String,
+  isActive: {type: Boolean, default: true}
 });
 
 const User: UserModel = mongoose.model<IUser, UserModel>('User', userSchema);

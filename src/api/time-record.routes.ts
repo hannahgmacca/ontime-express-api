@@ -97,7 +97,6 @@ router.get('/:id', authMiddleware, async (req, res) => {
         employee: IUser;
       }>('employee jobsite')
       .then((timeRecord) => {
-        // no time record found
         if (!timeRecord) {
           return res.status(404).json({ message: 'Time record not found' });
         }
@@ -105,7 +104,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
         if (user.getUserTimeRecordPermission(timeRecord.jobsite._id, timeRecord.employee._id)) {
           return res.json(timeRecord);
         } else {
-          res.status(401).json({ message: 'Unauthorized' });
+          res.status(403).json({ message: 'Unauthorized' });
         }
       });
   } catch (error) {
@@ -160,7 +159,7 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(201).json(newTimeRecord);
     }
 
-    res.status(401).json({ message: 'Unauthorized' });
+    res.status(403).json({ message: 'Unauthorized' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error', stack: error });
@@ -221,7 +220,7 @@ router.patch('/:id', authMiddleware, async (req, res) => {
           timeRecord.save();
           return res.json(timeRecord);
         } else {
-          res.status(401).json({ message: 'Unauthorized' });
+          res.status(403).json({ message: 'Unauthorized' });
         }
       });
   } catch (error) {
@@ -247,7 +246,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       return res.json({ message: 'Time record deleted successfully' });
     }
 
-    res.status(401).json({ message: 'Unauthorized' });
+    res.status(403).json({ message: 'Unauthorized' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });

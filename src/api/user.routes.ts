@@ -6,6 +6,7 @@ import bcrypt from 'bcrypt';
 import { UserDomain } from '../models/domain/user-domain.model';
 import { generateRandomDigits } from '../utilities/calc';
 import { generateWelcomeEmailHtml, sendEmail } from '../services/email.service';
+import { getUserQuery } from '../utilities/query';
 
 const router = express.Router();
 
@@ -15,7 +16,7 @@ router.post('/', authMiddleware, async (req, res) => {
   const { email, roles, jobsites, firstName, lastName, company } = req.body;
 
   try {
-    if (!user.getIsAdmin()) return res.status(401).send({ message: 'Unauthorised' });
+    if (!user.getIsAdmin()) return res.status(403).send({ message: 'Unauthorised' });
 
     // Check if the user already exists
     const existingUser = await User.findOne({ email });
@@ -61,14 +62,16 @@ router.get('/', authMiddleware, async (req, res) => {
     const userDomain: UserDomain = new UserDomain(req.user);
 
     if (userDomain.getIsAdmin() || userDomain.getIsSupervisor()) {
-      const user = await User.find({});
+      const query = await getUserQuery(req, userDomain);
+      
+      const user = await User.find(query);
 
       if (user) {
         return res.status(200).send(user);
       }
     }
 
-    return res.status(401).json({ message: 'Unauthorized' });
+    return res.status(403).json({ message: 'Unauthorized' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
@@ -82,14 +85,14 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const userDomain: UserDomain = new UserDomain(req.user);
 
     if (userDomain.getIsAdmin() || userDomain.getIsSupervisor()) {
-      const user = await User.find({ _id: userId });
+      const user = await User.find({ _id: userId, isActive: true });
 
       if (user) {
         return res.status(200).send(user);
       }
     }
 
-    return res.status(401).json({ message: 'Unauthorized' });
+    return res.status(403).json({ message: 'Unauthorized' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
@@ -107,7 +110,7 @@ router.patch('/:id', authMiddleware, async (req, res) => {
     if (userDomain.getIsAdmin() || userDomain.getIsSupervisor()) {
       const updatedUser = await User.findById(id);
 
-      if (!updatedUser) {
+      if (!updatedUser || !updatedUser.isActive) {
         return res.status(404).json({ message: 'User not found' });
       }
 
@@ -121,14 +124,14 @@ router.patch('/:id', authMiddleware, async (req, res) => {
       return res.json(updatedUser);
     }
 
-    return res.status(401).json({ message: 'Unauthorized' });
+    return res.status(403).json({ message: 'Unauthorized' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-// DELETE a role by ID
+// DELETE a user by ID
 router.delete('/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
 
@@ -136,16 +139,19 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     const userDomain: UserDomain = new UserDomain(req.user);
 
     if (userDomain.getIsAdmin()) {
-      const deletedRole = await User.findByIdAndDelete(id);
+      const deletedUser = await User.findById(id);
 
-      if (!deletedRole) {
+      if (!deletedUser || !deletedUser.isActive) {
         return res.status(404).json({ message: 'User not found' });
       }
+
+      deletedUser.isActive = false;
+      deletedUser.save();
   
       return res.json({ message: 'User deleted successfully' });
     }
 
-    return res.status(401).json({ message: 'Unauthorized' });
+    return res.status(403).json({ message: 'Unauthorized' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });

@@ -37,15 +37,12 @@ export const getTimeRecordQuery = async (req: any, user: UserDomain) => {
   if (search) {
     // get matching user IDs
     const matchingUsers = await User.find({
-      $or: [
-        { 'firstName': { $regex: new RegExp(search, 'i') } },
-        { 'lastName': { $regex: new RegExp(search, 'i') } },
-      ],
-    }).then(res => res.map(u => u.id));
+      $or: [{ firstName: { $regex: new RegExp(search, 'i') } }, { lastName: { $regex: new RegExp(search, 'i') } }],
+    }).then((res) => res.map((u) => u.id));
 
     query.push({
       $or: [
-        { 'employee': { $in: matchingUsers } },
+        { employee: { $in: matchingUsers } },
         { 'jobsite.name': { $regex: new RegExp(search, 'i') } },
         { 'jobsite.city': { $regex: new RegExp(search, 'i') } },
       ],
@@ -75,6 +72,51 @@ export const getTimeRecordQuery = async (req: any, user: UserDomain) => {
   return { ...baseQuery };
 };
 
+export const getUserQuery = async (req: any, user: UserDomain) => {
+  const { role, jobsite, search } = req.query;
+
+  const baseQuery: any = {isActive: true};
+  let query: any[] = [];
+
+  if (role) {
+    query.push({ roles: { $elemMatch: { name: role } } });
+  }
+
+  if (jobsite) {
+    query.push({ jobsites: jobsite });
+  }
+
+  if (search) {
+    query.push({
+      $or: [{ firstName: { $regex: new RegExp(search, 'i') } }, { lastName: { $regex: new RegExp(search, 'i') } }],
+    });
+  }
+  
+  if (query.length > 0) {
+    return { $and: query, ...baseQuery };
+  }
+  return { ...baseQuery };
+};
+
+export const getJobsiteQuery = (req: any) => {
+  const { search } = req.query;
+
+  const baseQuery: any = {isActive: true};
+  let query: any[] = [];
+
+  if (search) {
+    query.push({
+      $or: [{ name: { $regex: new RegExp(search, 'i') } }, { city: { $regex: new RegExp(search, 'i') } }],
+    });
+  }
+  
+  if (query.length > 0) {
+    return { $and: query, ...baseQuery };
+  }
+
+  return baseQuery;
+};
+
 export const validateNewRecord = async (req: any): Promise<string[]> => {
   const { employee, startTime, endTime, jobsite, date } = req.body;
 
@@ -84,7 +126,7 @@ export const validateNewRecord = async (req: any): Promise<string[]> => {
   if (!validatedJobsite) errorMessages.push('Invalid jobsite');
 
   const validatedUser = await User.findById(employee);
-  if (!validatedUser) errorMessages.push('Invalid employee');
+  if (!validatedUser || !validatedUser.isActive) errorMessages.push('Invalid employee');
 
   if (!startTime) errorMessages.push('Invalid start time');
 
