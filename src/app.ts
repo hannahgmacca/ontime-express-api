@@ -7,6 +7,9 @@ import * as middlewares from './middlewares';
 import api from './api';
 import MessageResponse from './interfaces/MessageResponse';
 
+// Set the default time zone to 'Australia/Sydney' (NSW time zone)
+process.env.TZ = 'Australia/Sydney';
+
 require('dotenv').config();
 
 // Set up mongoose connection
