@@ -31,6 +31,7 @@ router.get('/', authMiddleware, async (req, res) => {
         { key: 'EndTime', header: 'End Time' },
         { key: 'JobsiteName', header: 'Jobsite Name' },
         { key: 'EmployeeName', header: 'Employee Name' },
+        { key: 'Status', header: 'Status' },
         { key: 'TotalHours', header: 'Total hours worked' },
         { key: 'BreakHours', header: 'Total Break hours' },
         { key: 'RecordType', header: 'Time entry type'},
@@ -43,9 +44,10 @@ router.get('/', authMiddleware, async (req, res) => {
         EndTime: getTimeIn24HourFormat(record.endTime),
         JobsiteName: record.jobsite.name.toString(),
         EmployeeName: record.employee.firstName.toString() + ' ' + record.employee.lastName.toString(), 
+        Status: formatCamelCase(record.status),
+        RecordType: formatCamelCase(record.recordType),
         TotalHours: formatDecimalToString(record.recordTotalHours),
         BreakHours: formatDecimalToString(record.breakHours),
-        RecordType: formatCamelCase(record.recordType),
         Notes: record.notes
       }));
 

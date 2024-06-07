@@ -1,7 +1,7 @@
 export function getTimeIn24HourFormat(date: Date): string {
-    const isoString = date.toISOString();
-    const timePart = isoString.substring(11, 16); 
-    return timePart;
+    var options = { hour12: false };
+    const dateString = date.toLocaleTimeString('en-US', options);
+    return dateString.substring(0, 5);
 }
 
 export function formatDateDdMmYyyy(date: Date): string {
